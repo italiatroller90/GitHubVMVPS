@@ -1,6 +1,6 @@
-# .github/workflows/create-vm.yml
+# .github/workflows/CreateUbuntuVM.yml
 
-name: Make a Ubuntu VM
+name: Create Ubuntu VM
 
 on:
   push:
@@ -15,18 +15,15 @@ jobs:
       image: ubuntu:latest
       options: --privileged
 
-  
     services:
       docker:
         image: docker:dind
 
     steps:
-      - name: Set up Ngrok
+      - name: Install packages
         run: |
-          apt-get update && apt-get install -y curl jq
-          curl -fsSL https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok.zip
-          unzip ngrok.zip
-          chmod +x ngrok
+          apt-get update
+          apt-get install -y unzip mate-desktop-environment-core
 
       - name: Create VM with Ngrok and RDP
         env:
@@ -40,7 +37,7 @@ jobs:
             -p 3389:3389 \
             -p 4040:4040 \
             ubuntu:20.04 \
-            bash -c "apt-get update && apt-get install -y xrdp && service xrdp start && ./ngrok authtoken $NGROK_AUTH_TOKEN && ./ngrok tcp 3389 --region=ap"
+            bash -c "apt-get update && apt-get install -y xrdp mate-desktop-environment-core && service xrdp start && ./ngrok authtoken $NGROK_AUTH_TOKEN && ./ngrok tcp 3389 --region=ap"
 
           # Get the Ngrok tunnel URL
           sleep 10 # Wait for Ngrok to establish the tunnel
