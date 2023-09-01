@@ -1,37 +1,48 @@
+# .github/workflows/create-vm.yml
+
 name: Make a Ubuntu VM
+
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  build:
+  create-vm:
     runs-on: ubuntu-latest
-    steps:
-      - name: update and upgrade
-        run: sudo apt-get update -y && sudo apt-get upgrade -y
-      - name: install ngrok
-        run: |
-          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list && sudo apt update && sudo apt install ngrok
-          
-      - name: Run sshd
-        run: sudo service sshd start
-        
-      - name: Change pass
-        run: yes superpass | sudo passwd
-        
-      - name: add user
-        run: |
-          sudo useradd -m superuser
-          yes superpass | sudo passwd superuser
-          sudo usermod -aG sudo superuser
 
-      - name: Run ngrok
+    container:
+      image: ubuntu:latest
+      options: --privileged
+
+    services:
+      - docker:dind
+
+    steps:
+      - name: Set up Ngrok
+        run: |
+          apt-get update && apt-get install -y curl jq
+          curl -fsSL https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o ngrok.zip
+          unzip ngrok.zip
+          chmod +x ngrok
+
+      - name: Create VM with Ngrok and RDP
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          ngrok authtoken $NGROK_AUTH_TOKEN
-          ngrok tcp 22 &
-      - name: Get Ngrok
-        run: curl http://localhost:4040/api/tunnels
+          # Start Docker
+          dockerd-entrypoint.sh &
 
-      - name: run loop
-        run: tail -f /dev/null
+          # Create the VM using Docker
+          docker run -d --name my-vm -e TZ=UTC \
+            -p 3389:3389 \
+            -p 4040:4040 \
+            ubuntu:20.04 \
+            bash -c "apt-get update && apt-get install -y xrdp && service xrdp start && ./ngrok authtoken $NGROK_AUTH_TOKEN && ./ngrok tcp 3389 --region=ap"
+
+          # Get the Ngrok tunnel URL
+          sleep 10 # Wait for Ngrok to establish the tunnel
+          ngrok_url=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+
+          echo "VM created successfully"
+          echo "RDP is now available at: $ngrok_url (Use the provided RDP client to connect)"
