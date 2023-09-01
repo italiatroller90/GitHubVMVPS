@@ -15,8 +15,10 @@ jobs:
       image: ubuntu:latest
       options: --privileged
 
+  
     services:
-      - docker:dind
+      docker:
+        image: docker:dind
 
     steps:
       - name: Set up Ngrok
