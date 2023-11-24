@@ -4,3 +4,4 @@ This is the VM with RDP repo. It's just for testing apps and softwares, don't us
 Ngrok
 # Ubuntu update:
 ## Now uses docker to use the vm!
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/italiatroller90/GitVM/HEAD)
